@@ -132,6 +132,13 @@ class Interface(cmd.Cmd):
         """Exits the program and saves
         Usage: exit"""
         return True
+    
+    def do_save(self, arg):
+        """Saves all card sets
+        Usage: save"""
+        for k, v in cards.items():
+            with open(k + ".dat", "wb") as f:
+                p.dump(v, f)
 
 Interface().cmdloop()
 
