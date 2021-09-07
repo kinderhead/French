@@ -126,7 +126,7 @@ class Interface(cmd.Cmd):
             else:
                 total = len(c)
 
-            print("You got " + str(points) + " out of " + str(total) + "correct")
+            print("You got " + str(points) + " out of " + str(total) + " correct")
 
     def do_exit(self, arg):
         """Exits the program and saves
