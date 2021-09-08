@@ -1,4 +1,5 @@
 import cmd
+import glob
 import random
 import pickle as p
 
@@ -70,6 +71,32 @@ class Interface(cmd.Cmd):
         except FileNotFoundError:
             print("Cannot find set of name " + name)
     
+    def do_unload(self, name):
+        """Unloads a card set
+        Usage: unload <set>"""
+        with open(name + ".dat", "wb") as f:
+            p.dump(cards[name], f)
+        
+        cards.pop(name)
+    
+    def do_edit(self, arg):
+        """Edits a card
+        Usage: edit <set> <english> <french masculine> <french feminine>
+        """
+        args = arg.split(" ")
+        if len(args) != 4:
+            print("Invalid number of arguments")
+        else:
+            idex = -1
+            for edex, i in enumerate(cards[args[0]]):
+                if i.english == args[1]:
+                    idex = edex
+            
+            if idex == -1:
+                print("Cannot find card with name " + args[1])
+            else:
+                cards[args[0]][idex] = Card(args[1], args[2], args[3])
+    
     def do_create(self, name):
         """Creates a card set
         Usage: create <set>"""
@@ -92,6 +119,13 @@ class Interface(cmd.Cmd):
             for i in v:
                 txt += str(i) + "\n"
         print(txt)
+    
+    def do_show(self, arg):
+        """Shows all available sets to load
+        Usage: show"""
+        l = glob.glob("*.dat")
+        for i in l:
+            print(i.split(".")[0])
 
     def do_study(self, arg):
         """Starts a study session with all loaded card sets
