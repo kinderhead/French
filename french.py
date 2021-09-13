@@ -21,7 +21,10 @@ class Card():
         else:
             g = random.choice(["m", "f"])
         
-        print(f"What is {self.english} in french? ({g})")
+        if self.fr_f != self.fr_m:
+            print(f"What is {self.english} in french? ({g})")
+        else:
+            print(f"What is {self.english} in french?")
 
         if written == "true":
             txt = input("Write >>> ")
@@ -45,11 +48,11 @@ class Card():
                 ans = self.fr_f
 
             print("The correct answer is " + ans)
-            txt = input("Are you correct? (y|n) >>> ")
+            txt = input("Are you correct? (y|n) >>> ").replace(" ", "_")
             if txt == "y":
                 out += 1
         
-        if gender == "both":
+        if gender == "both" and self.fr_f != self.fr_m:
             if g == "m":
                 out += self.ask("f", written)
             elif g == "f":
@@ -104,11 +107,19 @@ class Interface(cmd.Cmd):
     
     def do_add(self, arg):
         """Adds a card to a set
-        Usage: add <set> <english> <french masculine> <french feminine>"""
+        Usage: add <set> <english> <french masculine> <french feminine>
+        Or: add <set> <english> <french>"""
         args = arg.split(" ")
-        if len(args) != 4:
+        if len(args) != 4 and len(args) != 3:
             print("Invalid number of arguments")
         else:
+            if args[0] not in cards:
+                print("Cannot find card set")
+                return
+
+            if len(args) == 3:
+                cards[args[0]].append(Card(args[1], args[2], args[2]))
+                return
             cards[args[0]].append(Card(args[1], args[2], args[3]))
     
     def do_all(self, arg):
@@ -117,7 +128,7 @@ class Interface(cmd.Cmd):
         txt = ""
         for k, v in cards.items():
             for i in v:
-                txt += str(i) + "\n"
+                txt += str(i).replace("_", " ") + "\n"
         print(txt)
     
     def do_show(self, arg):
