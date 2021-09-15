@@ -3,7 +3,15 @@ import glob
 import random
 import pickle as p
 
+class Proficiency():
+    NONE = 0
+    ONCE = 1
+    TWICE = 2
+    PROFICIENT = 3
+
 class Card():
+    proficiency = Proficiency.NONE
+
     def __init__(self, english, fr_m, fr_f):
         self.english = english
         self.fr_m = fr_m
@@ -51,6 +59,8 @@ class Card():
             txt = input("Are you correct? (y|n) >>> ").replace(" ", "_")
             if txt == "y":
                 out += 1
+                if gender == "both":
+                    out += 1
         
         if gender == "both" and self.fr_f != self.fr_m:
             if g == "m":
@@ -60,27 +70,41 @@ class Card():
         
         return out
 
-cards = {}
+class Set(list):
+    @staticmethod
+    def load(name):
+        try:
+            with open(name + ".dat", "rb") as f:
+                s = p.load(f)
+                if type(s) == list:
+                    print("Converting legacy set format to new set format")
+                    new = Set()
+                    new.extend(s)
+                    return new
+                else:
+                    return s
+        except FileNotFoundError:
+            print("Cannot find card set " + name)
+    
+    def save(self, name):
+        with open(name + ".dat", "wb") as f:
+            p.dump(self, f)
 
 class Interface(cmd.Cmd):
     prompt = ">>> "
+    cards = {}
 
     def do_load(self, name):
         """Loads a card set from a file
         Usage: load <set>"""
-        try:
-            with open(name + ".dat", "rb") as f:
-                cards[name] = p.load(f)
-        except FileNotFoundError:
-            print("Cannot find set of name " + name)
+        self.cards[name] = Set.load(name)
     
     def do_unload(self, name):
         """Unloads a card set
         Usage: unload <set>"""
-        with open(name + ".dat", "wb") as f:
-            p.dump(cards[name], f)
+        self.cards[name].save(name)
         
-        cards.pop(name)
+        self.cards.pop(name)
     
     def do_edit(self, arg):
         """Edits a card
@@ -91,19 +115,19 @@ class Interface(cmd.Cmd):
             print("Invalid number of arguments")
         else:
             idex = -1
-            for edex, i in enumerate(cards[args[0]]):
+            for edex, i in enumerate(self.cards[args[0]]):
                 if i.english == args[1]:
                     idex = edex
             
             if idex == -1:
                 print("Cannot find card with name " + args[1])
             else:
-                cards[args[0]][idex] = Card(args[1], args[2], args[3])
+                self.cards[args[0]][idex] = Card(args[1], args[2], args[3])
     
     def do_create(self, name):
         """Creates a card set
         Usage: create <set>"""
-        cards[name] = []
+        self.cards[name] = []
     
     def do_add(self, arg):
         """Adds a card to a set
@@ -113,20 +137,20 @@ class Interface(cmd.Cmd):
         if len(args) != 4 and len(args) != 3:
             print("Invalid number of arguments")
         else:
-            if args[0] not in cards:
+            if args[0] not in self.cards:
                 print("Cannot find card set")
                 return
 
             if len(args) == 3:
-                cards[args[0]].append(Card(args[1], args[2], args[2]))
+                self.cards[args[0]].append(Card(args[1], args[2], args[2]))
                 return
-            cards[args[0]].append(Card(args[1], args[2], args[3]))
+            self.cards[args[0]].append(Card(args[1], args[2], args[3]))
     
     def do_all(self, arg):
         """Shows all loaded cards
         Usage: all"""
         txt = ""
-        for k, v in cards.items():
+        for k, v in self.cards.items():
             for i in v:
                 txt += str(i).replace("_", " ") + "\n"
         print(txt)
@@ -152,7 +176,7 @@ class Interface(cmd.Cmd):
             points = 0
 
             c = []
-            for k, v in cards.items():
+            for k, v in self.cards.items():
                 for i in v:
                     #print(i)
                     c.append(i)
@@ -172,6 +196,51 @@ class Interface(cmd.Cmd):
                 total = len(c)
 
             print("You got " + str(points) + " out of " + str(total) + " correct")
+    
+    def do_learn(self, arg):
+        """Starts a learning session with all loaded sets
+        Learning session saves with each set. Use the reset argument
+        to reset the current save
+        Usage: learn <gender: m|f|both> <written: true|false>
+        Or: learn reset"""
+
+        if arg == "reset":
+            for k, v in self.cards.items():
+                for i in v:
+                    i.proficiency = Proficiency.NONE
+            return
+        
+        args = arg.split(" ")
+        if len(args) != 2:
+            print("Invalid number of arguments")
+        else:
+            gender = args[0]
+            written = args[1]
+            while True:
+                txt = "n"
+                c = []
+                idex = 0
+                for k, v in self.cards.items():
+                    for i in v:
+                        idex += 1
+                        if i.proficiency != Proficiency.PROFICIENT:
+                            c.append(i)
+                
+                print(f"\nCards remaining: {len(c)}/{idex}\n")
+
+                random.shuffle(c)
+
+                if len(c) == 0 or txt == "y":
+                    break
+
+                for i in c:
+                    points = i.ask(gender, written)
+                    if points == 2:
+                        i.proficiency += 1
+                    elif points == 0 and i.proficiency > 0:
+                        i.proficiency -= 1
+                
+                txt = input("Exit? (y|n) >>> ")
 
     def do_exit(self, arg):
         """Exits the program and saves
@@ -181,12 +250,11 @@ class Interface(cmd.Cmd):
     def do_save(self, arg):
         """Saves all card sets
         Usage: save"""
-        for k, v in cards.items():
-            with open(k + ".dat", "wb") as f:
-                p.dump(v, f)
+        for k, v in self.cards.items():
+            v.save(k)
 
-Interface().cmdloop()
+c = Interface()
+c.cmdloop()
 
-for k, v in cards.items():
-    with open(k + ".dat", "wb") as f:
-        p.dump(v, f)
+for k, v in c.cards.items():
+    v.save(k)
