@@ -30,9 +30,9 @@ class Card():
             g = random.choice(["m", "f"])
         
         if self.fr_f != self.fr_m:
-            print(f"What is {self.english} in french? ({g})")
+            print(f"What is {self.english.replace('_', ' ')} in french? ({g})")
         else:
-            print(f"What is {self.english} in french?")
+            print(f"What is {self.english.replace('_', ' ')} in french?")
 
         if written == "true":
             txt = input("Write >>> ")
@@ -108,10 +108,11 @@ class Interface(cmd.Cmd):
     
     def do_edit(self, arg):
         """Edits a card
-        Usage: edit <set> <english> <french masculine> <french feminine>
+        Usage: edit <set> <old english> <english> <french masculine> <french feminine>
+        Or: edit <set> <old english> <english> <french>
         """
         args = arg.split(" ")
-        if len(args) != 4:
+        if len(args) != 4 and len(args) != 5:
             print("Invalid number of arguments")
         else:
             idex = -1
@@ -122,12 +123,15 @@ class Interface(cmd.Cmd):
             if idex == -1:
                 print("Cannot find card with name " + args[1])
             else:
-                self.cards[args[0]][idex] = Card(args[1], args[2], args[3])
+                if len(args) == 5:
+                    self.cards[args[0]][idex] = Card(args[2], args[3], args[4])
+                else:
+                    self.cards[args[0]][idex] = Card(args[2], args[3], args[3])
     
     def do_create(self, name):
         """Creates a card set
         Usage: create <set>"""
-        self.cards[name] = []
+        self.cards[name] = Set()
     
     def do_add(self, arg):
         """Adds a card to a set
@@ -252,6 +256,18 @@ class Interface(cmd.Cmd):
         Usage: save"""
         for k, v in self.cards.items():
             v.save(k)
+    
+    def do_delete(self, arg):
+        """Deletes a card from a set
+        Usage: delete <set> <engish>"""
+        args = arg.split(" ")
+        if len(args) != 2:
+            print("Invalid number of arguments")
+        else:
+            idex = 0
+            for edex, i in enumerate(self.cards[args[0]]):
+                if i.english == args[1]:
+                    idex = edex
 
 c = Interface()
 c.cmdloop()
