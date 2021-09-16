@@ -67,6 +67,9 @@ class Card():
                 out += self.ask("f", written)
             elif g == "f":
                 out += self.ask("m", written)
+            
+        if out > 2:
+            out = 2
         
         return out
 
@@ -234,7 +237,7 @@ class Interface(cmd.Cmd):
 
                 random.shuffle(c)
 
-                if len(c) == 0 or txt == "y":
+                if len(c) == 0:
                     break
 
                 for i in c:
@@ -245,6 +248,8 @@ class Interface(cmd.Cmd):
                         i.proficiency -= 1
                 
                 txt = input("Exit? (y|n) >>> ")
+                if txt == "y":
+                    break
 
     def do_exit(self, arg):
         """Exits the program and saves
